@@ -7,7 +7,7 @@ export default defineConfig({
   vite: () => (process.env.PAGELET_PROFILE ? { build: { minify: false } } : {}),
   manifest: {
     name: '原页 · Pagelet',
-    description: '用自己的模型 API，在原网页阅读译文。双语、替换，一键恢复。',
+    description: '使用 LLM API 的网页翻译扩展',
     permissions: ['storage', 'activeTab', 'scripting', 'webNavigation'],
     optional_host_permissions: ['https://*/*', 'http://localhost/*', 'http://127.0.0.1/*'],
     icons: { 16: '/icon/16.png', 32: '/icon/32.png', 48: '/icon/48.png', 128: '/icon/128.png' },

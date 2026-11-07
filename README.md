@@ -4,7 +4,7 @@
 
 # 原页 · Pagelet
 
-**在原网页上读译文。用你自己的大模型 API，双语对照或只看译文，一键恢复原文。**
+**使用 LLM API 的网页翻译扩展**
 
 [![Release](https://img.shields.io/github/v/release/YiTaiiiiii/pagelet-translate?label=release&color=3346c9)](https://github.com/YiTaiiiiii/pagelet-translate/releases/latest)
 [![CI](https://img.shields.io/github/actions/workflow/status/YiTaiiiiii/pagelet-translate/ci.yml?branch=main&label=CI)](https://github.com/YiTaiiiiii/pagelet-translate/actions/workflows/ci.yml)
@@ -68,7 +68,7 @@ pnpm zip                                # 打包
 
 ## English
 
-Pagelet translates whole web pages in place with your own LLM API: bilingual or translation-only, one click back to the original.
+A web page translation extension that uses an LLM API.
 
 **Install**: download `pagelet-<version>-chrome.zip` from [Releases](https://github.com/YiTaiiiiii/pagelet-translate/releases/latest), unzip it, open `chrome://extensions`, enable Developer mode, then "Load unpacked".
 

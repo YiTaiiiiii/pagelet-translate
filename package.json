@@ -1,6 +1,6 @@
 {
   "name": "pagelet",
-  "description": "原页 — 简单、直接的网页翻译",
+  "description": "使用 LLM API 的网页翻译扩展",
   "version": "0.1.0",
   "private": true,
   "license": "MIT",
