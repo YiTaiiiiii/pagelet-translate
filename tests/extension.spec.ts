@@ -19,7 +19,7 @@ let inFlight = 0;
 let peak = 0;
 const releases: (() => void)[] = [];
 const readers: Page[] = [];
-const fixture = `<!doctype html><html><head><title>Public reading fixture</title><style>body{font:16px/1.7 sans-serif;margin:36px}p{margin:12px 0}main{max-width:760px}</style></head><body><main class="markdown-body"><h1>Read comfortably</h1><p id="rich">Thanks <a class="user-mention notranslate" href="#ana">@ana</a>, matching <code class="notranslate">app</code> alone is wrong. Read the <a id="original-link" href="#guide">guide</a> and keep <code>npm install</code> in <strong>src/index.ts</strong>.</p><p id="update">A useful tool keeps the page readable.</p><p translate="no">Do not send this excluded sentence.</p><div contenteditable="true"><p>Private editor contents must stay local.</p></div><input value="private-form-value"><pre>private-command-value</pre><p>这一段本来就是中文，不用翻译。</p><div id="new-content"></div><p id="far" style="margin-top:3000px">Only translate this after scrolling.</p></main></body></html>`;
+const fixture = `<!doctype html><html><head><title>Public reading fixture</title><style>body{font:16px/1.7 sans-serif;margin:36px}p{margin:12px 0}main{max-width:760px}</style></head><body><main class="markdown-body"><h1>Read comfortably</h1><p id="rich">Thanks <a class="user-mention notranslate" href="#ana">@ana</a>, matching <code class="notranslate">app</code> alone is wrong. Read the <a id="original-link" href="#guide">guide</a> and keep <code>npm install</code> in <strong>src/index.ts</strong>.</p><p id="update">A useful tool keeps the page readable.</p><p translate="no">Do not send this excluded sentence.</p><div contenteditable="true"><p>Private editor contents must stay local.</p></div><input value="private-form-value"><pre>private-command-value</pre><p>这一段本来就是中文，不用翻译。</p><div id="new-content"></div><p id="far" style="margin-top:3000px">Only translate <span style="position:relative;top:-99999px">(note)</span> this after scrolling.</p></main></body></html>`;
 
 test.beforeAll(async () => {
   temp = await mkdtemp(join(tmpdir(), 'page-translate-test-'));
@@ -353,7 +353,7 @@ test('真实 DOM 双语、替换、恢复，链接身份和代码保留', async 
   await expect(reader.locator('#rich [data-pagelet-output] code.notranslate')).toHaveText('app');
   await expect(reader.locator('#rich [data-pagelet-output] a.user-mention')).toHaveText('@ana');
   const sent = JSON.stringify(requests.map(request => request.body));
-  for (const excluded of ['private-form-value', 'private-command-value', 'Private editor', 'Do not send', 'Only translate this after scrolling']) expect(sent).not.toContain(excluded);
+  for (const excluded of ['private-form-value', 'private-command-value', 'Private editor', 'Do not send', 'Only translate']) expect(sent).not.toContain(excluded);
   await switchMode('translated');
   await expect(reader.locator('[data-pagelet-output]')).toHaveCount(0);
   await expect(reader.locator('#rich')).toContainText('译：');

@@ -293,8 +293,8 @@ export class PageTranslation {
     if (!first?.parentNode || !last?.parentNode || !first.isConnected) return null;
     const range = document.createRange();
     range.setStartBefore(first); range.setEndAfter(last);
-    const rect = range.getBoundingClientRect();
-    return rect.width || rect.height ? rect : null;
+    const rect = rangeBox(range);
+    return rect && (rect.width || rect.height) ? rect : null;
   }
   // The paragraph under the reading line (upper third of the window).
   private readingAnchor(): Anchor | null {
@@ -391,7 +391,7 @@ export class PageTranslation {
     if (!first || !last || !first.parentNode || !last.parentNode) return null;
     const range = document.createRange();
     range.setStartBefore(first); range.setEndAfter(last);
-    return range.getBoundingClientRect();
+    return rangeBox(range);
   }
   private identity(p: Paragraph): RecentIdentity {
     return { unitKey: p.unitKey, pair: this.pair, endpoint: this.service, context: p.context, supplement: p.supplement };
@@ -599,4 +599,19 @@ export class PageTranslation {
       this.schedule();
     });
   }
+}
+
+// Where a paragraph is on screen. Screen-reader-only text inside it is moved
+// far off the page (Wikipedia's "Jump up to:") or shrunk to a pixel; counting it
+// would stretch the box across the whole page and make far paragraphs look
+// visible. The common case has nothing off the page and needs one rectangle.
+function rangeBox(range: Range): DOMRect | null {
+  const whole = range.getBoundingClientRect();
+  if (whole.top + scrollY >= -1 && whole.left + scrollX >= -1) return whole;
+  let top = Infinity, left = Infinity, bottom = -Infinity, right = -Infinity;
+  for (const r of range.getClientRects()) {
+    if (r.width <= 1 || r.height <= 1 || r.bottom + scrollY < 0 || r.right + scrollX < 0) continue;
+    top = Math.min(top, r.top); left = Math.min(left, r.left); bottom = Math.max(bottom, r.bottom); right = Math.max(right, r.right);
+  }
+  return top === Infinity ? null : new DOMRect(left, top, right - left, bottom - top);
 }

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.1 - 2026-11-07
+
+- Translation now starts from the top of the screen. Hidden screen-reader text placed far off the page (such as Wikipedia's "Jump up to:" in references) made distant paragraphs look visible, so they were sent first and the visible ones started in the middle.
+
 ## 0.1.0 - 2026-11-07
 
 First public release.
