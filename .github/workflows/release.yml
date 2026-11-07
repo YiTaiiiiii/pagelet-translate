@@ -1,0 +1,106 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check tag against package.json
+        id: version
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match package.json version $version (expected v$version)."
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      # package.json has no packageManager field; keep this in step with the
+      # pnpm that writes pnpm-lock.yaml.
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.4.1
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: lts/*
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+
+      - run: pnpm typecheck
+      - run: pnpm build
+      - run: pnpm test
+      - run: pnpm test:upgrade
+
+      # WXT names the archive <package name>-<version>-chrome.zip.
+      - name: Zip
+        id: zip
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          pnpm zip
+          zip=".output/pagelet-$VERSION-chrome.zip"
+          test -f "$zip"
+          echo "path=$zip" >> "$GITHUB_OUTPUT"
+
+      # Chrome's own packer (the Playwright Chromium installed above) writes
+      # CRX3 and is the reference implementation; the key never leaves the
+      # runner's temp directory and no extra package handles it.
+      - name: Pack CRX
+        id: crx
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          CRX_PRIVATE_KEY: ${{ secrets.CRX_PRIVATE_KEY }}
+        run: |
+          if [ -z "$CRX_PRIVATE_KEY" ]; then
+            echo "::notice::CRX_PRIVATE_KEY is not set; the release carries only the zip."
+            exit 0
+          fi
+          key="$RUNNER_TEMP/pagelet-key.pem"
+          trap 'rm -f "$key"' EXIT
+          (umask 077 && printf '%s\n' "$CRX_PRIVATE_KEY" > "$key")
+          rm -rf "$RUNNER_TEMP/pagelet" "$RUNNER_TEMP/pagelet.crx"
+          cp -R .output/chrome-mv3 "$RUNNER_TEMP/pagelet"
+          chrome=$(node -e "import('@playwright/test').then(m => console.log(m.chromium.executablePath()))")
+          xvfb-run -a "$chrome" --headless=new --no-sandbox --no-first-run \
+            --user-data-dir="$RUNNER_TEMP/pack-profile" \
+            --pack-extension="$RUNNER_TEMP/pagelet" --pack-extension-key="$key"
+          crx=".output/pagelet-$VERSION-chrome.crx"
+          mv "$RUNNER_TEMP/pagelet.crx" "$crx"
+          # A CRX3 file starts with "Cr24" and format version 3.
+          test "$(head -c 4 "$crx")" = "Cr24"
+          test "$(od -An -tu4 -j4 -N4 "$crx" | tr -d ' ')" = "3"
+          echo "path=$crx" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+          ZIP: ${{ steps.zip.outputs.path }}
+          CRX: ${{ steps.crx.outputs.path }}
+        run: |
+          # Notes: this version's section of CHANGELOG.md, if any.
+          awk -v v="$VERSION" '
+            BEGIN { gsub(/\./, "\\.", v) }
+            /^## / { if (found) exit; if ($0 ~ "^## " v "([^0-9.]|$)") { found = 1; next } }
+            found
+          ' CHANGELOG.md > "$RUNNER_TEMP/notes.md"
+          if [ -s "$RUNNER_TEMP/notes.md" ]; then notes=(--notes-file "$RUNNER_TEMP/notes.md"); else notes=(--generate-notes); fi
+          files=("$ZIP")
+          if [ -n "$CRX" ]; then files+=("$CRX"); fi
+          gh release create "$GITHUB_REF_NAME" "${files[@]}" --verify-tag --title "Pagelet $VERSION" "${notes[@]}"

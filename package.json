@@ -1,0 +1,31 @@
+{
+  "name": "pagelet",
+  "description": "原页 — 简单、直接的网页翻译",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "wxt",
+    "build": "wxt build",
+    "zip": "wxt zip",
+    "typecheck": "tsc --noEmit",
+    "test": "playwright test",
+    "test:upgrade": "node scripts/test-upgrade.mjs",
+    "postinstall": "wxt prepare"
+  },
+  "dependencies": {
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/chrome": "0.2.9",
+    "@types/node": "26.5.1",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@wxt-dev/module-react": "1.2.2",
+    "typescript": "7.0.2",
+    "wxt": "0.21.4"
+  }
+}

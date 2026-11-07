@@ -1,0 +1,12 @@
+node_modules/
+.wxt/
+.output/
+test-results/
+playwright-report/
+.env*
+!.env.example
+.DS_Store
+
+# Local, machine-specific notes (never committed)
+CLAUDE.local.md
+.claude/worktrees/

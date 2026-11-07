@@ -1,0 +1,44 @@
+:root {
+  color-scheme: light;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  --canvas: #f8f9fa; --surface: #fff; --subtle: #f1f3f4; --ink: #202124;
+  --muted: #5f6368; --line: #dadce0; --accent: #1a73e8; --accent-hover: #1765cc;
+  --accent-soft: #e8f0fe; --accent-ink: #1967d2; --field: #fff;
+  --shadow: 0 16px 44px #24382a0a, 0 2px 5px #24382a04;
+  --error: #a83f35; --error-bg: #fff2ef; --focus: #1a73e8;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --canvas: #202124; --surface: #292a2d; --subtle: #35363a; --ink: #e8eaed;
+    --muted: #9aa0a6; --line: #4b4c50; --accent: #8ab4f8; --accent-hover: #aecbfa;
+    --accent-soft: #343c4a; --accent-ink: #8ab4f8; --field: #202124;
+    --shadow: 0 16px 44px #00000028, 0 2px 5px #0000000a;
+    --error: #f3b0a6; --error-bg: #422c28; --focus: #8ab4f8;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --canvas: #202124; --surface: #292a2d; --subtle: #35363a; --ink: #e8eaed;
+  --muted: #9aa0a6; --line: #4b4c50; --accent: #8ab4f8; --accent-hover: #aecbfa;
+  --accent-soft: #343c4a; --accent-ink: #8ab4f8; --field: #202124;
+  --shadow: 0 16px 44px #00000028, 0 2px 5px #0000000a;
+  --error: #f3b0a6; --error-bg: #422c28; --focus: #8ab4f8;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--canvas); color: var(--ink); font-size: 14px; }
+body.popup-body { width: 300px; min-width: 300px; background: var(--surface); }
+button, input { font: inherit; }
+button { cursor: pointer; color: inherit; }
+button:disabled { cursor: default; }
+button, a, input { -webkit-tap-highlight-color: transparent; }
+button:focus-visible, a:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; }
+input:focus { outline: 2px solid var(--focus); outline-offset: 2px; }
+button { transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease; }
+button:disabled { opacity: .55; }
+kbd { font-family: inherit; font-size: 11px; font-weight: 500; white-space: nowrap; }
+a { color: var(--accent-ink); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; } }

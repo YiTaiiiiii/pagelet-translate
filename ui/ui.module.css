@@ -1,0 +1,107 @@
+.brand { display: flex; gap: 11px; align-items: center; }
+.mark { display: grid; place-items: center; width: 39px; height: 39px; }
+.brandName { display: block; font-size: 18px; font-weight: 650; letter-spacing: 2px; }
+.brandSub { display: block; margin-top: 3px; font-size: 10px; color: var(--muted); letter-spacing: .6px; }
+.iconButton { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: 0; background: transparent; color: var(--muted); border-radius: 8px; padding: 0; }
+.iconButton:hover { background: var(--subtle); color: var(--ink); }
+.popup { width: 300px; padding: 8px 12px 0; background: var(--surface); color: var(--ink); }
+.popupHeader { display: flex; align-items: center; justify-content: space-between; min-height: 30px; }
+.popupTitle { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; }
+.popupTitle svg { color: var(--accent-ink); }
+.popup .iconButton { width: 28px; height: 28px; border-radius: 5px; }
+.pageContext { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 5px 0 12px; color: var(--muted); font-size: 12px; }
+.host { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.autoChip { flex: none; padding: 2px 6px; border-radius: 4px; font-size: 10px; color: var(--accent-ink); background: var(--accent-soft); }
+.progress { height: 3px; border-radius: 2px; background: var(--subtle); overflow: hidden; }
+.progress i { display: block; height: 100%; background: var(--accent); transition: width .3s ease-out; }
+.progressFailed i { background: var(--error); }
+@media (prefers-reduced-motion: reduce) { .progress i { transition: none; } }
+.languages { display: flex; align-items: center; gap: 7px; margin: 0 0 12px; font-size: 12px; color: var(--muted); }
+.languages select { min-width: 0; flex: 1; color: var(--ink); background: var(--field); border: 1px solid var(--line); border-radius: 5px; padding: 6px 4px; font: inherit; }
+.languages select:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.usage { border-top: 1px solid var(--line); margin-top: 12px; font-size: 11px; }
+.usage summary { cursor: pointer; padding: 9px 0 0; color: var(--muted); }
+.usage summary > span { float: right; }
+.usageBody { padding-top: 10px; }
+.usageTotals { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; color: var(--muted); }
+.usageTotals strong { color: var(--ink); font-weight: 500; font-variant-numeric: tabular-nums; }
+.usageBody p { font-size: 10px; line-height: 1.5; color: var(--muted); margin: 8px 0 0; }
+.usageRows { max-height: 175px; overflow: auto; margin-top: 8px; }
+.usageRows table { border-collapse: collapse; width: 100%; font-size: 10px; font-variant-numeric: tabular-nums; }
+.usageRows th, .usageRows td { text-align: right; padding: 5px 2px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.usageRows th { font-weight: 400; color: var(--muted); }
+.usageRows td:first-child, .usageRows th:first-child { text-align: left; }
+.usageRows small { display: block; color: var(--muted); font-size: 9px; }
+.segmented { display: flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; margin-bottom: 12px; }
+.segmented button { flex: 1; min-height: 32px; border: 0; background: transparent; font-size: 12px; color: var(--muted); }
+.segmented button + button { border-left: 1px solid var(--line); }
+.segmented button:hover { background: var(--subtle); }
+.segmented button[aria-pressed="true"] { color: var(--accent-ink); background: var(--accent-soft); font-weight: 500; }
+.primaryButton { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 36px; width: 100%; padding: 8px 12px; color: var(--surface); background: var(--accent); border: 1px solid transparent; border-radius: 6px; font-size: 13px; font-weight: 500; }
+.primaryButton:hover:not(:disabled) { background: var(--accent-hover); }
+.primaryButton kbd { margin-left: auto; opacity: .8; font-size: 11px; }
+.primaryButton:has(kbd) > span { margin-right: auto; }
+.restoreButton { color: var(--ink); background: var(--subtle); border-color: var(--line); }
+.restoreButton:hover:not(:disabled) { background: var(--field); }
+.shortcutHint { color: var(--muted); font-size: 11px; margin: 9px 0 0; line-height: 1.5; }
+.translationControls { display: flex; flex-direction: column; gap: 8px; margin-top: 9px; }
+.translationControls .shortcutHint { margin: 0; }
+.scopeOption { display: flex; align-items: flex-start; gap: 6px; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.scopeOption input { flex: none; width: 13px; height: 13px; margin: 2px 0 0; }
+.autoSite { margin-top: 9px; }
+.popupFooter { margin: 12px -12px 0; padding: 7px 12px; border-top: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; }
+.popupFooter > span { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); }
+.statusDot, .offDot { display: inline-block; height: 4px; width: 4px; border-radius: 50%; background: var(--accent-ink); }
+.offDot { background: var(--muted); }
+.textButton { display: inline-flex; align-items: center; gap: 4px; border: 0; padding: 2px 0; background: transparent; color: var(--muted); font-size: 11px; }
+.textButton:hover { color: var(--accent-ink); }
+.settingsPage { min-height: 100vh; background: var(--canvas); }
+.settingsHeader { display: flex; align-items: center; justify-content: space-between; max-width: 1000px; margin: 0 auto; padding: 30px 36px; }
+.settingsHeader .mark { width: 33px; height: 33px; }
+.settingsHeader .brandName { font-size: 16px; }
+.version { color: var(--muted); font-size: 11px; }
+.settingsMain { width: 100%; max-width: 550px; margin: 32px auto 0; padding: 0 24px 30px; }
+.settingsTitle { font-size: 24px; font-weight: 550; letter-spacing: .2px; line-height: 1.5; margin: 0; }
+.settingsIntro { font-size: 12px; color: var(--muted); margin: 13px 0 28px; line-height: 1.8; }
+.settingsCard { border: 1px solid var(--line); border-radius: 8px; padding: 22px; background: var(--surface); }
+.label { display: block; font-size: 12px; font-weight: 550; margin-bottom: 10px; }
+.labelRow { display: flex; align-items: baseline; justify-content: space-between; }
+.labelRow a { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; }
+.fieldRow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+.field { margin-top: 22px; }
+.fieldRow.field { grid-template-columns: minmax(0, 1fr) 120px; }
+.selectWrap { position: relative; color: var(--muted); }
+.selectWrap select { appearance: none; padding-right: 30px; }
+.selectWrap svg { position: absolute; right: 12px; top: 50%; transform: translateY(-50%) rotate(90deg); pointer-events: none; }
+.formatSwitch { margin: 0; border-radius: 8px; }
+.formatSwitch button { min-height: 42px; padding: 0 6px; white-space: nowrap; }
+.inputWrap { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 8px 0 13px; border: 1px solid var(--line); border-radius: 9px; background: var(--field); color: var(--muted); }
+.inputWrap:focus-within { outline: 2px solid var(--focus); outline-offset: 2px; }
+.inputWrap input { min-width: 0; width: 100%; border: 0; padding: 13px 0; background: transparent; font-size: 12px; color: var(--ink); outline: none; }
+.inputWrap input::placeholder { color: var(--muted); }
+.fieldHint { color: var(--muted); font-size: 10px; line-height: 1.7; margin: 9px 0 0; }
+.endpointToggle { display: flex; align-items: center; justify-content: space-between; width: 100%; border: 0; border-top: 1px solid var(--line); margin-top: 23px; padding: 19px 0 0; background: transparent; font-size: 11px; }
+.endpointToggle > span:last-child { display: flex; align-items: center; gap: 5px; color: var(--muted); }
+.endpointPanel { margin-top: 19px; }
+.textInput { border: 1px solid var(--line); border-radius: 8px; background: var(--field); color: var(--ink); width: 100%; min-width: 0; height: 44px; padding: 0 12px; font: inherit; font-size: 12px; }
+.textInput::placeholder { color: var(--muted); }
+select.textInput:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.formActions { display: flex; gap: 10px; margin-top: 25px; }
+.formActions .primaryButton { flex: 1; }
+.secondaryButton { display: inline-flex; justify-content: center; align-items: center; min-height: 44px; padding: 10px 22px; border: 1px solid var(--line); background: var(--surface); border-radius: 9px; font-size: 12px; }
+.secondaryButton:hover:not(:disabled) { background: var(--subtle); }
+.retryButton { display: flex; width: 100%; min-height: 32px; padding: 6px 12px; border-radius: 6px; }
+.testHint { color: var(--muted); font-size: 10px; line-height: 1.8; text-align: center; margin: 12px 0 0; }
+.error { font-size: 11px; color: var(--error); line-height: 1.7; }
+.errorBox, .successBox { display: flex; align-items: flex-start; gap: 8px; margin-top: 16px; border-radius: 8px; padding: 12px; font-size: 11px; line-height: 1.8; }
+.errorBox { color: var(--error); background: var(--error-bg); }
+.successBox { color: var(--accent-ink); background: var(--accent-soft); }
+.successBox svg { margin-top: 1px; }
+.shortcutCard { display: flex; align-items: center; gap: 10px; padding: 24px 3px; }
+.shortcutCard strong { font-size: 12px; font-weight: 550; }
+.shortcutCard p { font-size: 10px; color: var(--muted); margin: 6px 0 0; line-height: 1.7; }
+.shortcutButton { display: flex; align-items: center; gap: 9px; margin-left: auto; border: 0; background: transparent; color: var(--muted); padding: 5px; border-radius: 7px; }
+.shortcutButton:hover { background: var(--subtle); }
+.shortcutButton kbd { border: 1px solid var(--line); background: var(--surface); padding: 6px 10px; border-radius: 6px; box-shadow: 0 2px 0 var(--line); }
+.privacyLine { display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--muted); font-size: 10px; margin: 15px 0 0; line-height: 1.6; }
+@media (max-width: 560px) { .fieldRow, .fieldRow.field { grid-template-columns: minmax(0, 1fr); } .settingsHeader { padding: 22px 24px; } .settingsMain { margin-top: 18px; } .settingsTitle { font-size: 24px; } .settingsCard { padding: 21px; } }
