@@ -953,3 +953,25 @@ test('页面角落显示翻译进度，完成后消失；失败时显示重试',
   await expect(chip).toContainText('1 段翻译失败');
   await expect(chip.getByRole('button', { name: '重试' })).toBeVisible();
 });
+
+test('X 长文：翻译标题和正文段落，跳过代码块和操作按钮', async () => {
+  const block = (tag: string, cls: string, text: string) => `<${tag} class="${cls}" data-block="true" data-offset-key="${cls}-0"><div data-offset-key="${cls}-0-0"><span data-offset-key="${cls}-0-0"><span data-text="true">${text}</span></span></div></${tag}>`;
+  const page = '<!doctype html><title>X article fixture</title><style>body{font:16px/1.6 sans-serif}main{width:600px;margin:auto}</style><main><article data-testid="tweet" role="article"><article data-testid="twitterArticleReadView" role="article">'
+    + '<div data-testid="twitter-article-title"><span>Your coding agents made you a manager</span></div>'
+    + '<div role="group"><button data-testid="reply">Reply 12</button><button data-testid="bookmark">Save</button></div>'
+    + '<div data-testid="twitterArticleRichTextView"><div class="DraftEditor-root"><div class="DraftEditor-editorContainer"><div class="public-DraftEditor-content" contenteditable="false" data-testid="longformRichTextComponent">'
+    + block('h2', 'longform-header-two', 'Give it a way to check its work')
+    + block('div', 'longform-unstyled', 'Provide the agent with a mechanism to validate its work, like a test suite.')
+    + block('li', 'longform-unordered-list-item', 'Ask how a manager stays confident without reading everything.')
+    + '<section data-block="true"><pre><code>pnpm test --watch</code></pre><button>Copy</button></section>'
+    + '</div></div></div></div></article></article></main>';
+  const reader = await readPage();
+  await reader.route('https://x.com/pagelet_article/**', route => route.fulfill({ contentType: 'text/html', body: page }));
+  await reader.goto('https://x.com/pagelet_article/status/7001'); await toggleReader();
+  for (const text of ['made you a manager', 'check its work', 'validate its work', 'stays confident'])
+    await expect(reader.locator('[data-pagelet-output]', { hasText: text })).toHaveCount(1);
+  const sent = sentTexts().join('\n');
+  for (const excluded of ['pnpm test', 'Copy', 'Reply', 'Save']) expect(sent).not.toContain(excluded);
+  await toggleReader();
+  await expect(reader.locator('[data-pagelet-output]')).toHaveCount(0);
+});

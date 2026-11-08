@@ -8,6 +8,9 @@ const UI = 'nav,header,footer,button,[role="button"],.pagehead-actions';
 const GITHUB_FILES = 'td[class*="react-directory-row-name-cell"],[data-testid="path-name-segment"],relative-time,local-time,time-ago,.blob-code,.react-code-text,.react-code-lines';
 const INLINE = new Set(['A','EM','STRONG','B','I','U','S','DEL','INS','MARK','SMALL','SUP','SUB']);
 const TWEET_TEXT = '[data-testid="tweetText"]';
+// X long-form articles (status pages with an article) are a read-only Draft.js
+// view with its own title; they have no tweetText.
+const X_ARTICLE = '[data-testid="twitter-article-title"],[data-testid="twitterArticleRichTextView"]';
 const REDDIT_COMMENT = 'shreddit-comment,.comment';
 const originalProse = new WeakMap<Element, string>();
 // Plain counts and years stay as text (the prompt asks to keep numbers);
@@ -74,7 +77,7 @@ export function pageRoots(scope: Scope): Element[] {
   if (scope === 'all') return [document.body];
   // X card wrappers are clickable and contain account names, timestamps and
   // counters. The explicit prose boundary also separates quoted post bodies.
-  if (isX()) return [...document.querySelectorAll(TWEET_TEXT)];
+  if (isX()) return [...document.querySelectorAll(TWEET_TEXT + ',' + X_ARTICLE)];
   if (isReddit()) {
     const specific = [...document.querySelectorAll('[slot="text-body"],[slot="comment"],.md,shreddit-post h1,h1')];
     if (specific.length) return specific.filter((node,_,all) => !all.some(other => other !== node && other.contains(node)));
