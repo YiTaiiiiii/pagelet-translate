@@ -1,5 +1,5 @@
 import { parseInline, type InlinePart } from '../shared/engine';
-import type { DisplayMode } from '../shared/settings';
+import { DEFAULT_LOOK, lookStyle, type DisplayMode, type TranslationLook } from '../shared/settings';
 import { matches, snapshot, type Source, type Snapshot } from './extract';
 
 export interface View { source: Source; output?: HTMLElement; marker?: Comment; nodes?: Node[]; saved?: Snapshot[]; savedStyles?: { element: HTMLElement; style: string | null }[]; provisional?: boolean; lastOutput?: HTMLElement; boundary?: Node[]; hint?: HTMLElement }
@@ -55,8 +55,11 @@ function cloneInline(original: Element) {
   if (original instanceof HTMLAnchorElement) {
     if (/^(https?:|mailto:)/.test(original.href)) clone.setAttribute('href', original.href);
     clone.setAttribute('rel','noopener noreferrer');
+    // The translation sits in a softer colour; a link keeps the page's own
+    // colour and underline so it reads as the same link.
     clone.style.color = style.color;
     clone.style.textDecoration = style.textDecoration;
+    clone.style.textUnderlineOffset = style.textUnderlineOffset;
   }
   const weight = Number(style.fontWeight) || (style.fontWeight === 'bold' || style.fontWeight === 'bolder' ? 700 : 400);
   const parentWeight = parent ? (Number(parent.fontWeight) || 400) : 400;
@@ -78,6 +81,7 @@ function cloneInline(original: Element) {
     clone.style.verticalAlign = style.verticalAlign;
     clone.style.lineHeight = style.lineHeight;
   }
+  if (parent && style.fontFamily !== parent.fontFamily) clone.style.fontFamily = style.fontFamily;
   clone.style.fontSynthesis = 'weight style';
   return clone;
 }
@@ -109,7 +113,13 @@ function outputNode(language: string, parent: Element) {
   else output.style.color = 'color-mix(in srgb, currentColor 74%, transparent)';
   return { output, style, isHeading };
 }
-function place(view: View, nodes: Node[], mode: DisplayMode, language: string) {
+// The reader's optional mark on bilingual output. Inline styles only, so a
+// change applies to translations already shown without rendering them again.
+export function styleOutput(output: HTMLElement, look: TranslationLook = DEFAULT_LOOK) {
+  output.dataset.pageletLook = look.style;
+  Object.assign(output.style, lookStyle(look));
+}
+function place(view: View, nodes: Node[], mode: DisplayMode, language: string, look?: TranslationLook) {
   if (mode === 'translated') {
     const parent = view.source.parent as HTMLElement;
     if (getComputedStyle(parent).fontSynthesis.includes('none')) {
@@ -135,14 +145,15 @@ function place(view: View, nodes: Node[], mode: DisplayMode, language: string) {
       Object.assign(output.style,{color:isHeading ? style.color : `color-mix(in srgb, ${style.color} 74%, transparent)`,font:style.font,fontFamily:style.fontFamily,fontSize:isHeading ? `calc(${style.fontSize} * .78)` : style.fontSize,fontWeight:style.fontWeight,fontStyle:style.fontStyle,lineHeight:style.lineHeight,letterSpacing:style.letterSpacing}); parent.after(output);
     } else parent.insertBefore(output, view.source.nodes.at(-1)!.nextSibling);
     typesetCjk(output, style, language, isHeading);
+    styleOutput(output, look);
     view.output = output;
   }
 }
-export function retain(view: View, previous: HTMLElement, mode: DisplayMode, language: string) {
+export function retain(view: View, previous: HTMLElement, mode: DisplayMode, language: string, look?: TranslationLook) {
   restore(view);
   if (!current(view)) return;
   view.lastOutput = previous.cloneNode(true) as HTMLElement;
-  place(view, [...previous.childNodes].map(node => node.cloneNode(true)), mode, language);
+  place(view, [...previous.childNodes].map(node => node.cloneNode(true)), mode, language, look);
   view.provisional = true;
   view.boundary = boundaryNodes(view.source.parent);
 }
@@ -159,7 +170,9 @@ function fadeIn(view: View, mode: DisplayMode) {
   const target = mode === 'bilingual' ? view.output : sole(view, view.nodes ?? []) ? parent : undefined;
   target?.animate?.([{ opacity: mode === 'bilingual' ? 0 : .3 }, { opacity: 1 }], { duration: 220, easing: 'ease-out' });
 }
-export function render(view: View, translated: string, mode: DisplayMode, language: string) {
+// rich: bilingual output repeats the original links and emphasis; otherwise
+// it is plain text. Translation-only output always keeps the page's own nodes.
+export function render(view: View, translated: string, mode: DisplayMode, language: string, rich = true, look?: TranslationLook) {
   const visible = !!(view.output?.isConnected || view.marker?.isConnected);
   restore(view);
   if (!current(view)) return false;
@@ -169,10 +182,12 @@ export function render(view: View, translated: string, mode: DisplayMode, langua
       if (part.kind === 'k') {
         const kept = view.source.kept[part.id];
         if (kept === undefined) throw new Error('译文的保留内容编号不正确。');
+        if (mode !== 'translated' && !rich) return [document.createTextNode(part.children.filter((c): c is string => typeof c === 'string').join(''))];
         return [typeof kept === 'string' ? document.createTextNode(kept) : mode === 'translated' ? kept : cloneKept(kept)];
       }
       const original = view.source.inline[part.id];
       if (!original) throw new Error('译文的行内编号不正确。');
+      if (mode !== 'translated' && !rich) return build(part.children);
       const element = mode === 'translated' ? original : cloneInline(original);
       element.replaceChildren(...build(part.children)); return [element];
     });
@@ -182,7 +197,7 @@ export function render(view: View, translated: string, mode: DisplayMode, langua
   const nodes = build(parts);
   const remembered = document.createElement('span');
   remembered.append(...nodes.map(node => node.cloneNode(true)));
-  place(view, nodes, mode, language);
+  place(view, nodes, mode, language, look);
   view.lastOutput = remembered;
   if (!visible) fadeIn(view, mode);
   return true;

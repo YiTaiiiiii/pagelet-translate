@@ -103,6 +103,11 @@ select.textInput:focus-visible { outline: 2px solid var(--focus); outline-offset
 .shortcutButton { display: flex; align-items: center; gap: 9px; margin-left: auto; border: 0; background: transparent; color: var(--muted); padding: 5px; border-radius: 7px; }
 .shortcutButton:hover { background: var(--subtle); }
 .shortcutButton kbd { border: 1px solid var(--line); background: var(--surface); padding: 6px 10px; border-radius: 6px; box-shadow: 0 2px 0 var(--line); }
+.lookControls { display: flex; align-items: center; gap: 8px; margin-left: auto; flex: none; }
+.lookSelect { width: 112px; height: 34px; font-size: 12px; }
+.colorInput { width: 34px; height: 34px; padding: 3px; border: 1px solid var(--line); border-radius: 8px; background: var(--field); cursor: pointer; }
+.colorInput:disabled { cursor: default; opacity: .45; }
+.lookPreview { margin-top: 10px !important; font-size: 12px !important; color: var(--ink) !important; }
 .switch { appearance: none; flex: none; position: relative; width: 34px; height: 20px; margin: 0 5px 0 auto; border-radius: 10px; background: var(--line); cursor: pointer; transition: background-color 120ms ease; }
 .switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--surface); box-shadow: 0 1px 2px #0000003d; transition: transform 120ms ease; }
 .switch:checked { background: var(--accent); }

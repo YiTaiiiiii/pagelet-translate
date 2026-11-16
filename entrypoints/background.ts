@@ -1,6 +1,6 @@
 import { defineBackground } from 'wxt/utils/define-background';
 import { browser } from 'wxt/browser';
-import { DEFAULT_SETTINGS, STORAGE_KEY, AUTO_SITES_KEY, FLOATING_BALL_KEY, BALL_ORIGINS, BALL_PLACE_KEY, parseSettings, permissionOrigin, siteOf, sitePattern, type Settings } from '../shared/settings';
+import { DEFAULT_SETTINGS, STORAGE_KEY, AUTO_SITES_KEY, FLOATING_BALL_KEY, BALL_ORIGINS, BALL_PLACE_KEY, RICH_TEXT_KEY, LOOK_KEY, parseLook, parseSettings, permissionOrigin, siteOf, sitePattern, type Settings } from '../shared/settings';
 import { IDLE_STATE, SESSION_KEY, type PageSession, type PageState } from '../shared/translation';
 import { testConnection, ApiError } from '../core/connection';
 import { translate } from '../core/translate';
@@ -87,6 +87,12 @@ export default defineBackground(() => {
       if (latest?.enabled && latest.documentId === frame.documentId) return;
       await startTab({ id: details.tabId, url: frame.url }, undefined, current, { documentId: frame.documentId, url: frame.url }).catch(() => {});
     });
+  }
+  async function look() {
+    return parseLook((await browser.storage.local.get(LOOK_KEY))[LOOK_KEY]);
+  }
+  async function richText() {
+    return (await browser.storage.local.get(RICH_TEXT_KEY))[RICH_TEXT_KEY] !== false;
   }
   const BALL_SCRIPT = 'pagelet-ball';
   async function ballEnabled() {
@@ -193,6 +199,8 @@ export default defineBackground(() => {
     const engine = await control(tabId, { action: 'status' }, documentId).catch(() => null);
     check();
     if (engine?.version !== BUILD_VERSION) throw new Error(REFRESH_PAGE);
+    const rich = await richText(), outputLook = await look();
+    check();
     const latestFrame = await browser.webNavigation.getFrame({ tabId, frameId: 0 });
     check();
     if (!latestFrame || latestFrame.documentId !== documentId || new URL(latestFrame.url).origin !== origin) throw new Error('页面正在切换，请稍后再试。');
@@ -212,7 +220,7 @@ export default defineBackground(() => {
     sessions.set(tabId, session);
     // Authorize content messages before start. Do not yield between installing
     // the session and sending start to this exact document.
-    const state = await control(tabId, { action: 'start', sessionId: session.id, mode: config.mode, endpoint: serviceIdentity(config), ...pair }, documentId);
+    const state = await control(tabId, { action: 'start', sessionId: session.id, mode: config.mode, endpoint: serviceIdentity(config), rich, look: outputLook, ...pair }, documentId);
     check();
     await persist();
     check();
@@ -314,6 +322,21 @@ export default defineBackground(() => {
         }
         if (request.type === 'pagelet-get-state') return getState((await activeTab(winId)).id!);
         if (request.type === 'get-floating-ball') return ballEnabled();
+        if (request.type === 'get-rich-text') return richText();
+        if (request.type === 'get-translation-look') return look();
+        if (request.type === 'save-translation-look') {
+          const value = parseLook(request.look);
+          await browser.storage.local.set({ [LOOK_KEY]: value });
+          // Shown translations change at once; no new requests.
+          for (const [id, session] of sessions) if (session.enabled) await control(id, { action: 'look', look: value }, session.documentId).catch(() => {});
+          return value;
+        }
+        if (request.type === 'save-rich-text') {
+          await browser.storage.local.set({ [RICH_TEXT_KEY]: request.enabled });
+          // Pages already translated re-render their translations; no new requests.
+          for (const [id, session] of sessions) if (session.enabled) await control(id, { action: 'rich', rich: request.enabled }, session.documentId).catch(() => {});
+          return request.enabled;
+        }
         if (request.type === 'save-floating-ball') {
           if (request.enabled && !await browser.permissions.contains({ origins: BALL_ORIGINS })) throw new Error('没有获得网站访问授权，未开启悬浮球。');
           await browser.storage.local.set({ [FLOATING_BALL_KEY]: request.enabled });

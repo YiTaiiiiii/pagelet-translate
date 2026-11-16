@@ -34,6 +34,8 @@ export default defineUnlistedScript(() => {
         case 'stop': page.stop(); break;
         case 'reset': page.reset(); break;
         case 'mode': page.setMode(message.mode); break;
+        case 'rich': page.setRich(message.rich); break;
+        case 'look': page.setLook(message.look); break;
         case 'scope': page.setScope(message.scope); break;
         case 'retry': page.retry(); break;
         case 'pause': page.pause(message.error); break;
