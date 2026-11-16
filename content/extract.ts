@@ -159,6 +159,7 @@ function styledSpan(node: Element) {
   const style = getComputedStyle(node), parent = getComputedStyle(node.parentElement);
   return style.fontWeight !== parent.fontWeight || style.fontStyle !== parent.fontStyle ||
     style.color !== parent.color || style.textDecorationLine !== parent.textDecorationLine ||
+    style.fontSize !== parent.fontSize || style.fontFamily !== parent.fontFamily ||
     (style.backgroundColor !== parent.backgroundColor && style.backgroundColor !== 'rgba(0, 0, 0, 0)' && style.backgroundColor !== 'transparent');
 }
 function encode(parent: Element, nodes: Node[], scope: Scope): Source {

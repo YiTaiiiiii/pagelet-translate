@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { DEFAULT_SETTINGS, THINKING_LEVELS, type ApiFormat, type Settings as SettingsValue, type Thinking, type UiBridge, parseSettings } from '../shared/settings';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { DEFAULT_LOOK, LOOK_STYLES, lookStyle, type LookStyle, type TranslationLook, DEFAULT_SETTINGS, THINKING_LEVELS, type ApiFormat, type Settings as SettingsValue, type Thinking, type UiBridge, parseSettings } from '../shared/settings';
 import { CUSTOM_PROVIDER, PROVIDERS, providerById, resolveProvider } from '../shared/providers';
 import { Brand } from './Brand';
 import { Icon } from './Icons';
@@ -7,6 +7,7 @@ import s from './ui.module.css';
 import { BUILD_VERSION, ExtensionUpdateError } from '../shared/runtime';
 
 const THINKING_NAMES: Record<Thinking, string> = { default: '默认', off: '关闭', low: '低', medium: '中', high: '高' };
+const LOOK_NAMES: Record<LookStyle, string> = { none: '无', background: '浅色背景', underline: '下划线', wavy: '波浪线', dashed: '虚线', dotted: '点线' };
 const FORMATS: [ApiFormat, string][] = [['openai', 'OpenAI 兼容'], ['anthropic', 'Anthropic 兼容']];
 
 export function Settings({ bridge }: { bridge: UiBridge }) {
@@ -18,14 +19,37 @@ export function Settings({ bridge }: { bridge: UiBridge }) {
   const [status, setStatus] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [shortcut, setShortcut] = useState('');
   const [needsReload, setNeedsReload] = useState(false);
+  const [rich, setRich] = useState(true);
+  const [richBusy, setRichBusy] = useState(false);
+  const [richError, setRichError] = useState('');
+  const [look, setLook] = useState<TranslationLook>(DEFAULT_LOOK);
+  const [lookError, setLookError] = useState('');
+  const lookTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [ball, setBall] = useState(false);
   const [ballBusy, setBallBusy] = useState(false);
   const [ballError, setBallError] = useState('');
   useEffect(() => {
     let active = true;
     bridge.getFloatingBall?.().then(value => { if (active) setBall(value); }).catch(() => {});
+    bridge.getRichText?.().then(value => { if (active) setRich(value); }).catch(() => {});
+    bridge.getLook?.().then(value => { if (active) setLook(value); }).catch(() => {});
     return () => { active = false; };
   }, [bridge]);
+  async function changeRich(enabled: boolean) {
+    if (!bridge.saveRichText) return;
+    setRichBusy(true); setRichError('');
+    try { setRich(await bridge.saveRichText(enabled)); }
+    catch (error) { setRichError(error instanceof Error ? error.message : '富文本译文设置未能保存，请重试。'); }
+    finally { setRichBusy(false); }
+  }
+  // The colour picker reports every step of a drag; save once it settles.
+  function changeLook(next: TranslationLook) {
+    setLook(next); setLookError('');
+    clearTimeout(lookTimer.current);
+    lookTimer.current = setTimeout(() => {
+      void bridge.saveLook?.(next).catch(error => setLookError(error instanceof Error ? error.message : '译文样式未能保存，请重试。'));
+    }, 250);
+  }
   async function changeBall(enabled: boolean) {
     if (!bridge.saveFloatingBall) return;
     setBallBusy(true); setBallError('');
@@ -103,6 +127,9 @@ export function Settings({ bridge }: { bridge: UiBridge }) {
         {needsReload && bridge.reloadExtension && <button type="button" className={s.secondaryButton} onClick={() => bridge.reloadExtension?.()}>重新加载扩展</button>}
       </form>
       <div className={s.shortcutCard}><div><strong>翻译 / 恢复原文</strong><p>可在 Chrome 中修改快捷键。</p></div><button className={s.shortcutButton} onClick={() => bridge.openShortcuts()} aria-label="更改快捷键"><kbd>{shortcut ? shortcut.replace('Alt', /Mac/.test(navigator.platform) ? '⌥' : 'Alt').replaceAll('+', ' ') : '未设置'}</kbd><Icon name="external" size={13} /></button></div>
+      {bridge.saveRichText && <div className={s.shortcutCard}><div><strong>富文本译文</strong><p>双语对照时，译文里的链接、加粗等样式和颜色与原文一致；关闭后译文为纯文本。</p>{richError && <p className={s.error} role="alert">{richError}</p>}</div><input className={s.switch} type="checkbox" role="switch" aria-label="富文本译文" checked={rich} disabled={!ready || richBusy} onChange={event => void changeRich(event.target.checked)} /></div>}
+      {bridge.saveLook && <div className={s.shortcutCard}><div><strong>译文样式</strong><p>双语对照时给译文加上标记，便于和原文区分。</p><p className={s.lookPreview}><span data-testid="look-preview" style={lookStyle(look) as CSSProperties}>这是一段译文示例，标记会加在这里。</span></p>{lookError && <p className={s.error} role="alert">{lookError}</p>}</div>
+        <div className={s.lookControls}><div className={s.selectWrap}><select className={`${s.textInput} ${s.lookSelect}`} aria-label="译文样式" value={look.style} disabled={!ready} onChange={event => changeLook({ ...look, style: event.target.value as LookStyle })}>{LOOK_STYLES.map(style => <option key={style} value={style}>{LOOK_NAMES[style]}</option>)}</select><Icon name="chevron" size={13} /></div>{look.style === 'background' && <input className={s.colorInput} type="color" aria-label="标记颜色" value={look.color} disabled={!ready} onChange={event => changeLook({ ...look, color: event.target.value })} />}</div></div>}
       {bridge.saveFloatingBall && <div className={s.shortcutCard}><div><strong>悬浮球</strong><p>在 HTTPS 网页侧边显示，可拖动，点击翻译此页；开启时需允许访问网站。</p>{ballError && <p className={s.error} role="alert">{ballError}</p>}</div><input className={s.switch} type="checkbox" role="switch" aria-label="悬浮球" checked={ball} disabled={!ready || ballBusy} onChange={event => void changeBall(event.target.checked)} /></div>}
       <p className={s.privacyLine}><Icon name="shield" size={15} />网页文字只发往你配置的模型服务。</p>
     </main>

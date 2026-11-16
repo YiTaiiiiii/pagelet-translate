@@ -889,6 +889,61 @@ test('双语译文分层：标题译文小一号，正文译文稍淡，中文�
   expect(look.lineHeight).toBeCloseTo(1.7, 1);
 });
 
+test('富文本译文默认开启，链接颜色同原文；关闭后双语译文为纯文本，切换只重排不发请求', async () => {
+  const reader = await readPage();
+  expect((await page.evaluate(() => chrome.runtime.sendMessage({ type: 'get-rich-text' }))).data).toBe(true);
+  await toggleReader();
+  const output = reader.locator('#rich [data-pagelet-output]');
+  await expect(output).toContainText('译：');
+  await expect(output.locator('a[href$="#guide"]')).toHaveText('guide');
+  const colors = await reader.evaluate(() => ['#original-link', '#rich [data-pagelet-output] a[href$="#guide"]'].map(selector => getComputedStyle(document.querySelector(selector)!).color));
+  expect(colors[1]).toBe(colors[0]);
+  const before = requests.length;
+  const off = await page.evaluate(() => chrome.runtime.sendMessage({ type: 'save-rich-text', enabled: false }));
+  expect(off.ok, off.error).toBe(true);
+  await expect(output.locator('a, strong, code')).toHaveCount(0);
+  await expect(output).toContainText('guide');
+  await expect(output).toContainText('npm install');
+  const on = await page.evaluate(() => chrome.runtime.sendMessage({ type: 'save-rich-text', enabled: true }));
+  expect(on.ok, on.error).toBe(true);
+  await expect(output.locator('a[href$="#guide"]')).toHaveText('guide');
+  expect(requests.length).toBe(before);
+});
+
+test('译文样式默认无标记；可选浅色背景（颜色自选）加内边距或各种下划线，切换不发请求', async () => {
+  const reader = await readPage();
+  expect((await page.evaluate(() => chrome.runtime.sendMessage({ type: 'get-translation-look' }))).data).toEqual({ style: 'none', color: '#3b82f6' });
+  await toggleReader();
+  const output = reader.locator('#update [data-pagelet-output]');
+  await expect(output).toContainText('译：');
+  const css = () => output.evaluate(element => { const style = getComputedStyle(element); return { background: style.backgroundColor, padding: style.padding, line: style.textDecorationLine, kind: style.textDecorationStyle, color: style.textDecorationColor }; });
+  expect(await css()).toMatchObject({ background: 'rgba(0, 0, 0, 0)', padding: '0px', line: 'none' });
+  const before = requests.length;
+  const save = (look: unknown) => page.evaluate(look => chrome.runtime.sendMessage({ type: 'save-translation-look', look }), look);
+  expect((await save({ style: 'background', color: '#ff0000' })).data).toEqual({ style: 'background', color: '#ff0000' });
+  await expect.poll(async () => (await css()).padding).toBe('4px 8px');
+  expect((await css()).background).not.toBe('rgba(0, 0, 0, 0)');
+  // Lines always use the default blue; the chosen colour is for the background.
+  await save({ style: 'wavy', color: '#00aa00' });
+  await expect.poll(css).toMatchObject({ padding: '0px', line: 'underline', kind: 'wavy', color: 'rgb(59, 130, 246)' });
+  await save({ style: 'dotted', color: 'not-a-color' });
+  await expect.poll(css).toMatchObject({ kind: 'dotted', color: 'rgb(59, 130, 246)' });
+  await save({ style: 'none', color: '#3b82f6' });
+  await expect.poll(css).toMatchObject({ line: 'none', padding: '0px' });
+  expect(requests.length).toBe(before);
+  // The options page preview follows the choice.
+  await page.reload();
+  await page.getByLabel('译文样式').selectOption('underline');
+  await expect(page.getByTestId('look-preview')).toHaveCSS('text-decoration-style', 'solid');
+  await expect(page.getByLabel('标记颜色')).toHaveCount(0);
+  await page.getByLabel('译文样式').selectOption('background');
+  await page.getByLabel('标记颜色').fill('#ff0000');
+  await expect(page.getByTestId('look-preview')).toHaveCSS('padding', '4px 8px');
+  await expect(page.getByTestId('look-preview')).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await page.getByLabel('译文样式').selectOption('none');
+  await expect(page.getByLabel('标记颜色')).toHaveCount(0);
+});
+
 test('悬停段落出现操作条：单段改回原文再切回不发请求，重译只重发这一段且跳过缓存', async () => {
   const reader = await readPage();
   await toggleReader();

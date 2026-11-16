@@ -1,11 +1,11 @@
 import type { BatchInput, PageUsage, Scope, SegmentResult } from './engine';
 import { parseBatch } from './engine';
 import { LANGUAGES, type LanguagePair } from './languages';
-import type { DisplayMode, Reply } from './settings';
+import type { DisplayMode, Reply, TranslationLook } from './settings';
 import type { PageState } from './translation';
 import { RELOAD_EXTENSION } from './runtime';
 
-export interface PageStartOptions extends LanguagePair { mode: DisplayMode; endpoint: string }
+export interface PageStartOptions extends LanguagePair { mode: DisplayMode; endpoint: string; rich?: boolean; look?: TranslationLook }
 interface PageEnvelope { version: string; sessionId: string }
 export type PageRequest =
   | (PageEnvelope & { type: 'pagelet-plan'; jobs: { id: string; priority: number }[] })
@@ -21,7 +21,11 @@ export type UiRequest =
   | { type: 'get-auto-site' }
   | { type: 'save-auto-site'; enabled: boolean }
   | { type: 'get-floating-ball' }
-  | { type: 'save-floating-ball'; enabled: boolean };
+  | { type: 'save-floating-ball'; enabled: boolean }
+  | { type: 'get-rich-text' }
+  | { type: 'save-rich-text'; enabled: boolean }
+  | { type: 'get-translation-look' }
+  | { type: 'save-translation-look'; look: unknown };
 // From the floating ball's page script; only acts on the sender's own tab.
 export interface BallPlace { side: 'left' | 'right'; top: number }
 export interface BallStatus { enabled: boolean; place: BallPlace }
@@ -39,6 +43,8 @@ export type PageControlCommand = (
   | { action: 'status' | 'stop' | 'reset' | 'retry' | 'route' }
   | ({ action: 'start'; sessionId: string } & PageStartOptions)
   | { action: 'mode'; mode: DisplayMode }
+  | { action: 'rich'; rich: boolean }
+  | { action: 'look'; look: TranslationLook }
   | { action: 'scope'; scope: Scope }
   | { action: 'pause'; error: string }
   | { action: 'usage'; usage: PageUsage }
@@ -77,6 +83,10 @@ export function isBackgroundRequest(value: unknown): value is BackgroundRequest 
     case 'save-auto-site': return typeof value.enabled === 'boolean';
     case 'get-floating-ball': return true;
     case 'save-floating-ball': return typeof value.enabled === 'boolean';
+    case 'get-rich-text': return true;
+    case 'save-rich-text': return typeof value.enabled === 'boolean';
+    case 'get-translation-look': return true;
+    case 'save-translation-look': return object(value.look);
     case 'pagelet-ball': return typeof value.version === 'string' && (value.action === 'toggle' || value.action === 'status' || (value.action === 'place' && object(value.place)));
   }
   if (typeof value.sessionId !== 'string' || typeof value.version !== 'string') return false;
@@ -98,8 +108,10 @@ export function isPageMessage(value: unknown): value is PageMessage {
   if (value.type !== 'pagelet-control') return false;
   switch (value.action) {
     case 'status': case 'stop': case 'reset': case 'retry': case 'route': return true;
-    case 'start': return typeof value.sessionId === 'string' && typeof value.endpoint === 'string' && mode(value.mode) && pair(value);
+    case 'start': return typeof value.sessionId === 'string' && typeof value.endpoint === 'string' && mode(value.mode) && pair(value) && (value.rich === undefined || typeof value.rich === 'boolean') && (value.look === undefined || object(value.look));
     case 'mode': return mode(value.mode);
+    case 'rich': return typeof value.rich === 'boolean';
+    case 'look': return object(value.look);
     case 'scope': return scope(value.scope);
     case 'pause': return typeof value.error === 'string';
     case 'usage': {

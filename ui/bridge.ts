@@ -1,4 +1,4 @@
-import { type Reply, type UiBridge, type ConnectionResult, type Settings, type AutoSite, BALL_ORIGINS, parseSettings, permissionOrigin, sitePattern } from '../shared/settings';
+import { type Reply, type UiBridge, type ConnectionResult, type Settings, type AutoSite, type TranslationLook, BALL_ORIGINS, parseSettings, permissionOrigin, sitePattern } from '../shared/settings';
 import { type PageState } from '../shared/translation';
 import { USAGE_KEY, type UsageRecord } from '../shared/usage';
 import { BUILD_VERSION, ExtensionUpdateError } from '../shared/runtime';
@@ -58,6 +58,10 @@ export const extensionBridge: UiBridge = {
     if (enabled && !await chrome.permissions.request({ origins: [sitePattern(site)] })) throw new Error('没有获得这个网站的访问授权，未开启自动翻译。');
     return send<PageState>({ type: 'save-auto-site', enabled });
   },
+  getRichText: () => send<boolean>({ type: 'get-rich-text' }),
+  getLook: () => send<TranslationLook>({ type: 'get-translation-look' }),
+  saveLook: look => send<TranslationLook>({ type: 'save-translation-look', look }),
+  saveRichText: enabled => send<boolean>({ type: 'save-rich-text', enabled }),
   getFloatingBall: () => send<boolean>({ type: 'get-floating-ball' }),
   async saveFloatingBall(enabled) {
     // Ask for HTTPS site access directly from the user's click, before any await.
