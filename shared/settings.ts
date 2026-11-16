@@ -29,14 +29,19 @@ export const LOOK_STYLES = ['none', 'background', 'underline', 'wavy', 'dashed',
 export type LookStyle = typeof LOOK_STYLES[number];
 export interface TranslationLook { style: LookStyle; color: string }
 export const DEFAULT_LOOK: TranslationLook = { style: 'none', color: '#3b82f6' };
-// Inline CSS for a look; shared by the page output and the options preview.
-// The colour is chosen for the background only; lines use the default blue.
+// Inline CSS for a look, put on an inline span around the translated text so
+// the mark follows the text line by line instead of filling the whole block.
+// Shared by the page output and the options preview. The colour is chosen for
+// the background only; lines use the default blue.
 export function lookStyle({ style, color }: TranslationLook) {
   const line = style !== 'none' && style !== 'background';
+  const fill = style === 'background';
   return {
-    backgroundColor: style === 'background' ? `color-mix(in srgb, ${color} 10%, transparent)` : '',
-    padding: style === 'background' ? '4px 8px' : '',
-    borderRadius: style === 'background' ? '4px' : '',
+    backgroundColor: fill ? `color-mix(in srgb, ${color} 12%, transparent)` : '',
+    padding: fill ? '2px 4px' : '',
+    borderRadius: fill ? '4px' : '',
+    boxDecorationBreak: fill ? 'clone' : '',
+    WebkitBoxDecorationBreak: fill ? 'clone' : '',
     textDecorationLine: line ? 'underline' : '',
     textDecorationStyle: style === 'underline' ? 'solid' : line ? style : '',
     textDecorationColor: line ? DEFAULT_LOOK.color : '',

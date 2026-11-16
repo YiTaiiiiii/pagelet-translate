@@ -117,7 +117,13 @@ function outputNode(language: string, parent: Element) {
 // change applies to translations already shown without rendering them again.
 export function styleOutput(output: HTMLElement, look: TranslationLook = DEFAULT_LOOK) {
   output.dataset.pageletLook = look.style;
-  Object.assign(output.style, lookStyle(look));
+  let mark = output.querySelector<HTMLElement>(':scope > [data-pagelet-mark]');
+  if (look.style === 'none') { mark?.replaceWith(...mark.childNodes); return; }
+  if (!mark) {
+    mark = document.createElement('span'); mark.setAttribute('data-pagelet-mark', '');
+    mark.append(...output.childNodes); output.append(mark);
+  }
+  Object.assign(mark.style, lookStyle(look));
 }
 function place(view: View, nodes: Node[], mode: DisplayMode, language: string, look?: TranslationLook) {
   if (mode === 'translated') {
