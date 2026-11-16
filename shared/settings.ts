@@ -12,6 +12,12 @@ export function siteOf(url: string | undefined): string | null {
   catch { return null; }
 }
 export function sitePattern(site: string) { return `${site}/*`; }
+// The floating ball is opt-in: it runs on every HTTPS page, so it needs access
+// to all of them, asked for only when the reader turns it on.
+export const FLOATING_BALL_KEY = 'floating-ball.v1';
+export const BALL_ORIGINS = ['https://*/*'];
+// Where the reader last left the ball: side edge and share of window height.
+export const BALL_PLACE_KEY = 'floating-ball-place.v1';
 
 // Request format of the configured service. Both are spoken by many
 // providers beyond their originators (DeepSeek, Kimi, GLM, gateways).
@@ -121,4 +127,6 @@ export interface UiBridge {
   getAutoSite?(): Promise<AutoSite>;
   saveAutoSite?(site: string, enabled: boolean): Promise<import('./translation').PageState>;
   watchPageState?(listener: (state: import('./translation').PageState) => void): () => void;
+  getFloatingBall?(): Promise<boolean>;
+  saveFloatingBall?(enabled: boolean): Promise<boolean>;
 }

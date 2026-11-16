@@ -19,8 +19,22 @@ export type UiRequest =
   | { type: 'save-mode'; mode: DisplayMode }
   | { type: 'save-scope'; scope: Scope }
   | { type: 'get-auto-site' }
-  | { type: 'save-auto-site'; enabled: boolean };
-export type BackgroundRequest = PageRequest | UiRequest;
+  | { type: 'save-auto-site'; enabled: boolean }
+  | { type: 'get-floating-ball' }
+  | { type: 'save-floating-ball'; enabled: boolean };
+// From the floating ball's page script; only acts on the sender's own tab.
+export interface BallPlace { side: 'left' | 'right'; top: number }
+export interface BallStatus { enabled: boolean; place: BallPlace }
+export type BallAction = { action: 'toggle' | 'status' } | { action: 'place'; place: BallPlace };
+export type BallRequest = { type: 'pagelet-ball'; version: string } & BallAction;
+export function parseBallPlace(value: unknown): BallPlace {
+  const place = value as Partial<BallPlace> | null;
+  return place && (place.side === 'left' || place.side === 'right') && typeof place.top === 'number' && Number.isFinite(place.top)
+    ? { side: place.side, top: Math.min(1, Math.max(0, place.top)) } : { side: 'right', top: .6 };
+}
+export type BackgroundRequest = PageRequest | UiRequest | BallRequest;
+// To the floating ball: translation turned on or off, or the ball was switched off.
+export type BallMessage = { type: 'pagelet-ball-state'; version: string; enabled?: boolean; remove?: true };
 export type PageControlCommand = (
   | { action: 'status' | 'stop' | 'reset' | 'retry' | 'route' }
   | ({ action: 'start'; sessionId: string } & PageStartOptions)
@@ -61,6 +75,9 @@ export function isBackgroundRequest(value: unknown): value is BackgroundRequest 
     case 'save-scope': return scope(value.scope);
     case 'get-auto-site': return true;
     case 'save-auto-site': return typeof value.enabled === 'boolean';
+    case 'get-floating-ball': return true;
+    case 'save-floating-ball': return typeof value.enabled === 'boolean';
+    case 'pagelet-ball': return typeof value.version === 'string' && (value.action === 'toggle' || value.action === 'status' || (value.action === 'place' && object(value.place)));
   }
   if (typeof value.sessionId !== 'string' || typeof value.version !== 'string') return false;
   switch (value.type) {

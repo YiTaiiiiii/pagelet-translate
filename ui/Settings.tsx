@@ -18,6 +18,21 @@ export function Settings({ bridge }: { bridge: UiBridge }) {
   const [status, setStatus] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [shortcut, setShortcut] = useState('');
   const [needsReload, setNeedsReload] = useState(false);
+  const [ball, setBall] = useState(false);
+  const [ballBusy, setBallBusy] = useState(false);
+  const [ballError, setBallError] = useState('');
+  useEffect(() => {
+    let active = true;
+    bridge.getFloatingBall?.().then(value => { if (active) setBall(value); }).catch(() => {});
+    return () => { active = false; };
+  }, [bridge]);
+  async function changeBall(enabled: boolean) {
+    if (!bridge.saveFloatingBall) return;
+    setBallBusy(true); setBallError('');
+    try { setBall(await bridge.saveFloatingBall(enabled)); }
+    catch (error) { setBallError(error instanceof Error ? error.message : '悬浮球设置未能保存，请重试。'); }
+    finally { setBallBusy(false); }
+  }
   useEffect(() => {
     let active = true;
     Promise.all([bridge.getSettings(), bridge.getShortcut()]).then(([settings, key]) => {
@@ -88,6 +103,7 @@ export function Settings({ bridge }: { bridge: UiBridge }) {
         {needsReload && bridge.reloadExtension && <button type="button" className={s.secondaryButton} onClick={() => bridge.reloadExtension?.()}>重新加载扩展</button>}
       </form>
       <div className={s.shortcutCard}><div><strong>翻译 / 恢复原文</strong><p>可在 Chrome 中修改快捷键。</p></div><button className={s.shortcutButton} onClick={() => bridge.openShortcuts()} aria-label="更改快捷键"><kbd>{shortcut ? shortcut.replace('Alt', /Mac/.test(navigator.platform) ? '⌥' : 'Alt').replaceAll('+', ' ') : '未设置'}</kbd><Icon name="external" size={13} /></button></div>
+      {bridge.saveFloatingBall && <div className={s.shortcutCard}><div><strong>悬浮球</strong><p>在 HTTPS 网页侧边显示，可拖动，点击翻译此页；开启时需允许访问网站。</p>{ballError && <p className={s.error} role="alert">{ballError}</p>}</div><input className={s.switch} type="checkbox" role="switch" aria-label="悬浮球" checked={ball} disabled={!ready || ballBusy} onChange={event => void changeBall(event.target.checked)} /></div>}
       <p className={s.privacyLine}><Icon name="shield" size={15} />网页文字只发往你配置的模型服务。</p>
     </main>
   </div>;

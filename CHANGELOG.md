@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Optional floating ball on HTTPS pages: half tucked behind a side edge, slides out on hover, click to translate the page or restore it (white with a blue glyph, blue with a white glyph while translated); drag it anywhere and it rests on the nearer side. Off by default; turning it on in the options page asks for access to HTTPS sites.
 - Fix: on the GitHub dashboard, the object of a feed heading ("a repository") was translated twice; translations no longer show long gaps from source indentation.
 - Fix: pages left open while the extension is reloaded no longer log errors.
 
