@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Fix: on the GitHub dashboard, the object of a feed heading ("a repository") was translated twice; translations no longer show long gaps from source indentation.
+- Fix: pages left open while the extension is reloaded no longer log errors.
 
 ## 0.1.2 - 2026-11-08
 

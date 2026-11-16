@@ -3,6 +3,7 @@ import { parseBatch } from './engine';
 import { LANGUAGES, type LanguagePair } from './languages';
 import type { DisplayMode, Reply } from './settings';
 import type { PageState } from './translation';
+import { RELOAD_EXTENSION } from './runtime';
 
 export interface PageStartOptions extends LanguagePair { mode: DisplayMode; endpoint: string }
 interface PageEnvelope { version: string; sessionId: string }
@@ -32,7 +33,12 @@ export type PageControl = { type: 'pagelet-control'; version: string } & PageCon
 export type PageMessage = PageControl | { type: 'pagelet-result'; version: string; jobId: string; result: SegmentResult };
 export type MessageReply<T> = Reply<T> & { unsent?: boolean };
 export function sendPageRequest<T = null>(request: PageRequest): Promise<MessageReply<T>> {
-  return chrome.runtime.sendMessage(request);
+  // A page script left behind by a reloaded extension has no runtime any more;
+  // fail like a lost reply instead of throwing from a scroll handler.
+  try {
+    if (!chrome.runtime?.id) throw new Error(RELOAD_EXTENSION);
+    return chrome.runtime.sendMessage(request);
+  } catch { return Promise.reject(new Error(RELOAD_EXTENSION)); }
 }
 function object(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object';
