@@ -163,17 +163,24 @@ function styledSpan(node: Element) {
 }
 function encode(parent: Element, nodes: Node[], scope: Scope): Source {
   const source: Source = { parent, nodes, text: '', plain: '', inline: [], kept: [], snapshots: snapshot(nodes) };
+  // Markup indentation spread over several nodes would otherwise leave runs
+  // of spaces, which the pre-wrap translation shows as gaps.
+  let space = true;
   function keep(value: Node | string, text: string) {
+    space = text === '\n';
     const id = source.kept.push(value) - 1; return '<k' + id + '>' + escapeText(text) + '</k' + id + '>';
   }
   function text(value: string, node: Text) {
     const preservesLines = node.parentElement && /^(pre|pre-wrap|pre-line|break-spaces)$/.test(getComputedStyle(node.parentElement).whiteSpace);
     value = preservesLines ? value.replace(/\r\n?/g, '\n').replace(/[^\S\n]+/g, ' ') : value.replace(/\s+/g, ' ');
+    if (space) value = value.replace(/^ /, '');
+    if (!value) return '';
     let cursor = 0, result = '';
     for (const match of value.matchAll(KEEP)) {
       result += escapeText(value.slice(cursor, match.index)) + keep(match[0], match[0]);
       cursor = match.index! + match[0].length;
     }
+    space = /\s$/.test(value);
     return result + escapeText(value.slice(cursor));
   }
   function protectedText(child: Node): string {
@@ -233,13 +240,13 @@ export function extract(roots: Element[], scope: Scope, occupied: Set<Node>): Ex
       groups.get(container)!.add(child);
     }
   }
-  const result: Extracted[] = [];
+  const sources: Source[] = [];
   for (const [parent, selected] of groups) {
     let run: Node[] = [];
     function flush() {
       if (run.some(node => selected.has(node))) {
         const source = encode(parent, run, scope);
-        if ((source.plain.match(/\p{Letter}/gu)?.length ?? 0) >= 2 && source.text.length <= 32000) result.push({ source, ...readingContext(parent, scope) });
+        if ((source.plain.match(/\p{Letter}/gu)?.length ?? 0) >= 2 && source.text.length <= 32000) sources.push(source);
       }
       run = [];
     }
@@ -249,5 +256,14 @@ export function extract(roots: Element[], scope: Scope, occupied: Set<Node>): Ex
     }
     flush();
   }
-  return result;
+  // A block inside an inline-block wrapper (GitHub's Truncate in feed
+  // headings: "ojhdt starred <inline-flex><block>2 repositories") is its own
+  // group but also part of the sentence around it. The sentence reads it
+  // already; translating it again would show it twice.
+  const inRuns = new Set(sources.flatMap(source => source.nodes));
+  const covered = (element: Element) => {
+    for (let current = element.parentElement; current; current = current.parentElement) if (inRuns.has(current)) return true;
+    return false;
+  };
+  return sources.filter(source => !covered(source.parent)).map(source => ({ source, ...readingContext(source.parent, scope) }));
 }
