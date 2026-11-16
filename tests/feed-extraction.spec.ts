@@ -115,3 +115,27 @@ test('普通文档继续保持文档阅读单元', async ({ page }) => {
     { text: 'Second document paragraph.', kind: 'document', key: undefined, related: undefined, unit: 'doc' },
   ]);
 });
+
+// GitHub feed heading, reduced from the real markup: the object of the
+// sentence sits in Primer's Truncate (inline-flex) whose text box is a block.
+test('GitHub 动态标题里截断容器中的宾语只随整句翻译一次，缩进空白不留成串空格', async ({ page }) => {
+  await fixture(page, `<style>.d-flex{display:flex}.flex-1{flex:1}.Truncate{display:inline-flex;max-width:100%}.Truncate-text{display:block}</style><main><article id="card"><h3 class="d-flex flex-items-center">
+      <span class="flex-1">
+          <span class="flex-shrink-0">
+            <a href="/ojhdt" class="Link--primary Link text-bold">ojhdt</a>
+          starred
+        </span>
+          <span class="overflow-auto">
+            <span class="Truncate">
+    <span class="Truncate-text">                                      2 repositories
+</span>
+</span>                          </span>
+      </span>
+      <div><button>Feed item options</button></div>
+</h3></article></main>`, 'github.com');
+  const items = await page.evaluate(() => {
+    const mod = (window as any).extraction;
+    return mod.extract(mod.pageRoots('main'), 'main', new Set()).map((item: any) => item.source.text);
+  });
+  expect(items).toEqual(['<i0>ojhdt</i0> starred 2 repositories ']);
+});

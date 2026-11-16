@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fix: on the GitHub dashboard, the object of a feed heading ("a repository") was translated twice; translations no longer show long gaps from source indentation.
+
 ## 0.1.2 - 2026-11-08
 
 - X long-form articles are translated: the title and body paragraphs, not just regular posts.
