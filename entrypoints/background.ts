@@ -1,6 +1,6 @@
 import { defineBackground } from 'wxt/utils/define-background';
 import { browser } from 'wxt/browser';
-import { DEFAULT_SETTINGS, STORAGE_KEY, AUTO_SITES_KEY, parseSettings, permissionOrigin, siteOf, sitePattern, type Settings } from '../shared/settings';
+import { DEFAULT_SETTINGS, STORAGE_KEY, AUTO_SITES_KEY, FLOATING_BALL_KEY, BALL_ORIGINS, BALL_PLACE_KEY, parseSettings, permissionOrigin, siteOf, sitePattern, type Settings } from '../shared/settings';
 import { IDLE_STATE, SESSION_KEY, type PageSession, type PageState } from '../shared/translation';
 import { testConnection, ApiError } from '../core/connection';
 import { translate } from '../core/translate';
@@ -10,7 +10,7 @@ import { USAGE_KEY, USAGE_LIMIT, type UsageRecord, type UsageRecorder } from '..
 import { BUILD_VERSION, REFRESH_PAGE } from '../shared/runtime';
 import { parseBatch, cacheKey, serviceIdentity, EMPTY_USAGE, type PageUsage, type SegmentResult } from '../shared/engine';
 import { TranslationMemo } from '../core/memo';
-import { isBackgroundRequest, isPageState, type PageControl, type PageControlCommand, type PageMessage } from '../shared/messages';
+import { isBackgroundRequest, isPageState, parseBallPlace, type BallMessage, type BallStatus, type PageControl, type PageControlCommand, type PageMessage } from '../shared/messages';
 import { NavigationQueue, classifyNavigation, type NavigationTarget } from '../core/navigation';
 
 export default defineBackground(() => {
@@ -88,6 +88,27 @@ export default defineBackground(() => {
       await startTab({ id: details.tabId, url: frame.url }, undefined, current, { documentId: frame.documentId, url: frame.url }).catch(() => {});
     });
   }
+  const BALL_SCRIPT = 'pagelet-ball';
+  async function ballEnabled() {
+    return (await browser.storage.local.get(FLOATING_BALL_KEY))[FLOATING_BALL_KEY] === true && browser.permissions.contains({ origins: BALL_ORIGINS });
+  }
+  // Registered scripts outlive the worker; keep them in step with the switch
+  // and the site access, which the reader can also remove in Chrome.
+  async function syncBall() {
+    const wanted = await ballEnabled();
+    const registered = (await browser.scripting.getRegisteredContentScripts({ ids: [BALL_SCRIPT] })).length > 0;
+    if (wanted && !registered) await browser.scripting.registerContentScripts([{ id: BALL_SCRIPT, matches: BALL_ORIGINS, js: ['ball.js'], runAt: 'document_idle', persistAcrossSessions: true }]);
+    if (!wanted && registered) await browser.scripting.unregisterContentScripts({ ids: [BALL_SCRIPT] });
+  }
+  // Registration only reaches pages loaded later; update the open ones now.
+  async function updateOpenBalls(enabled: boolean) {
+    const tabs = await browser.tabs.query({ url: BALL_ORIGINS });
+    await Promise.all(tabs.map(tab => tab.id === undefined ? undefined : enabled
+      ? browser.scripting.executeScript({ target: { tabId: tab.id, frameIds: [0] }, files: ['/ball.js'] }).catch(() => {})
+      : browser.tabs.sendMessage(tab.id, { type: 'pagelet-ball-state', version: BUILD_VERSION, remove: true } satisfies BallMessage, { frameId: 0 }).catch(() => {})));
+  }
+  void syncBall().catch(() => {});
+  browser.permissions.onRemoved.addListener(() => { void syncBall().catch(() => {}); });
   async function permitted(config: Settings) {
     if (!await browser.permissions.contains({ origins: [permissionOrigin(config.endpoint, config.format)] })) throw new Error('请先到设置中测试连接，允许访问模型服务。');
   }
@@ -125,7 +146,9 @@ export default defineBackground(() => {
   }
   async function toggle(windowId?: number): Promise<PageState> {
     await ready;
-    const tab = await activeTab(windowId);
+    return toggleTab(await activeTab(windowId));
+  }
+  async function toggleTab(tab: { id?: number; url?: string }): Promise<PageState> {
     const tabId = tab.id!;
     const current = await getState(tabId);
     if (current.enabled) {
@@ -290,6 +313,27 @@ export default defineBackground(() => {
           return request.enabled && !state.enabled ? startTab(tab) : state;
         }
         if (request.type === 'pagelet-get-state') return getState((await activeTab(winId)).id!);
+        if (request.type === 'get-floating-ball') return ballEnabled();
+        if (request.type === 'save-floating-ball') {
+          if (request.enabled && !await browser.permissions.contains({ origins: BALL_ORIGINS })) throw new Error('没有获得网站访问授权，未开启悬浮球。');
+          await browser.storage.local.set({ [FLOATING_BALL_KEY]: request.enabled });
+          await syncBall();
+          await updateOpenBalls(request.enabled);
+          return request.enabled;
+        }
+      }
+      if (request.type === 'pagelet-ball') {
+        const tab = sender.tab;
+        if (ui || !tab?.id || sender.frameId !== 0) throw new Error('不允许的操作。');
+        if (request.version !== BUILD_VERSION) throw new Error(REFRESH_PAGE);
+        if (request.action === 'status') return { enabled: (await getState(tab.id)).enabled, place: parseBallPlace((await browser.storage.local.get(BALL_PLACE_KEY))[BALL_PLACE_KEY]) } satisfies BallStatus;
+        if (request.action === 'place') { await browser.storage.local.set({ [BALL_PLACE_KEY]: parseBallPlace(request.place) }); return null; }
+        if (!await ballEnabled()) throw new Error('悬浮球已关闭。');
+        if (!(await settings()).apiKey) {
+          await browser.runtime.openOptionsPage().catch(() => {});
+          throw new Error('请先配置模型服务。');
+        }
+        return toggleTab(tab);
       }
       const tabId = sender.tab?.id;
       const session = tabId !== undefined ? sessions.get(tabId) : undefined;
@@ -350,6 +394,7 @@ export default defineBackground(() => {
         void browser.action.setBadgeText({ tabId, text: badge }).catch(() => {});
         void browser.action.setBadgeBackgroundColor({ tabId, color: '#3346c9' }).catch(() => {});
         void browser.runtime.sendMessage({ type: 'pagelet-ui-state', tabId, state }).catch(() => {});
+        void browser.tabs.sendMessage(tabId!, { type: 'pagelet-ball-state', version: BUILD_VERSION, enabled: state.enabled } satisfies BallMessage, { documentId: session.documentId }).catch(() => {});
         return null;
       }
       throw new Error('无法识别此操作。');
