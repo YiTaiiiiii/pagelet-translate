@@ -1,4 +1,4 @@
-import { type Reply, type UiBridge, type ConnectionResult, type Settings, type AutoSite, type TranslationLook, BALL_ORIGINS, parseSettings, permissionOrigin, sitePattern } from '../shared/settings';
+import { type Reply, type UiBridge, type ConnectionResult, type Settings, type AutoSite, parseSettings, permissionOrigin, sitePattern } from '../shared/settings';
 import { type PageState } from '../shared/translation';
 import { USAGE_KEY, type UsageRecord } from '../shared/usage';
 import { BUILD_VERSION, ExtensionUpdateError } from '../shared/runtime';
@@ -59,15 +59,7 @@ export const extensionBridge: UiBridge = {
     return send<PageState>({ type: 'save-auto-site', enabled });
   },
   getRichText: () => send<boolean>({ type: 'get-rich-text' }),
-  getLook: () => send<TranslationLook>({ type: 'get-translation-look' }),
-  saveLook: look => send<TranslationLook>({ type: 'save-translation-look', look }),
   saveRichText: enabled => send<boolean>({ type: 'save-rich-text', enabled }),
-  getFloatingBall: () => send<boolean>({ type: 'get-floating-ball' }),
-  async saveFloatingBall(enabled) {
-    // Ask for HTTPS site access directly from the user's click, before any await.
-    if (enabled && !await chrome.permissions.request({ origins: BALL_ORIGINS })) throw new Error('没有获得网站访问授权，未开启悬浮球。');
-    return send<boolean>({ type: 'save-floating-ball', enabled });
-  },
   watchPageState(listener) {
     let tabId: number | undefined;
     void chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) => { tabId = tab?.id; });

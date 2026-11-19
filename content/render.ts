@@ -1,5 +1,5 @@
 import { parseInline, type InlinePart } from '../shared/engine';
-import { DEFAULT_LOOK, lookStyle, type DisplayMode, type TranslationLook } from '../shared/settings';
+import type { DisplayMode } from '../shared/settings';
 import { matches, snapshot, type Source, type Snapshot } from './extract';
 
 export interface View { source: Source; output?: HTMLElement; marker?: Comment; nodes?: Node[]; saved?: Snapshot[]; savedStyles?: { element: HTMLElement; style: string | null }[]; provisional?: boolean; lastOutput?: HTMLElement; boundary?: Node[]; hint?: HTMLElement }
@@ -113,19 +113,7 @@ function outputNode(language: string, parent: Element) {
   else output.style.color = 'color-mix(in srgb, currentColor 74%, transparent)';
   return { output, style, isHeading };
 }
-// The reader's optional mark on bilingual output. Inline styles only, so a
-// change applies to translations already shown without rendering them again.
-export function styleOutput(output: HTMLElement, look: TranslationLook = DEFAULT_LOOK) {
-  output.dataset.pageletLook = look.style;
-  let mark = output.querySelector<HTMLElement>(':scope > [data-pagelet-mark]');
-  if (look.style === 'none') { mark?.replaceWith(...mark.childNodes); return; }
-  if (!mark) {
-    mark = document.createElement('span'); mark.setAttribute('data-pagelet-mark', '');
-    mark.append(...output.childNodes); output.append(mark);
-  }
-  Object.assign(mark.style, lookStyle(look));
-}
-function place(view: View, nodes: Node[], mode: DisplayMode, language: string, look?: TranslationLook) {
+function place(view: View, nodes: Node[], mode: DisplayMode, language: string) {
   if (mode === 'translated') {
     const parent = view.source.parent as HTMLElement;
     if (getComputedStyle(parent).fontSynthesis.includes('none')) {
@@ -151,15 +139,14 @@ function place(view: View, nodes: Node[], mode: DisplayMode, language: string, l
       Object.assign(output.style,{color:isHeading ? style.color : `color-mix(in srgb, ${style.color} 74%, transparent)`,font:style.font,fontFamily:style.fontFamily,fontSize:isHeading ? `calc(${style.fontSize} * .78)` : style.fontSize,fontWeight:style.fontWeight,fontStyle:style.fontStyle,lineHeight:style.lineHeight,letterSpacing:style.letterSpacing}); parent.after(output);
     } else parent.insertBefore(output, view.source.nodes.at(-1)!.nextSibling);
     typesetCjk(output, style, language, isHeading);
-    styleOutput(output, look);
     view.output = output;
   }
 }
-export function retain(view: View, previous: HTMLElement, mode: DisplayMode, language: string, look?: TranslationLook) {
+export function retain(view: View, previous: HTMLElement, mode: DisplayMode, language: string) {
   restore(view);
   if (!current(view)) return;
   view.lastOutput = previous.cloneNode(true) as HTMLElement;
-  place(view, [...previous.childNodes].map(node => node.cloneNode(true)), mode, language, look);
+  place(view, [...previous.childNodes].map(node => node.cloneNode(true)), mode, language);
   view.provisional = true;
   view.boundary = boundaryNodes(view.source.parent);
 }
@@ -178,7 +165,7 @@ function fadeIn(view: View, mode: DisplayMode) {
 }
 // rich: bilingual output repeats the original links and emphasis; otherwise
 // it is plain text. Translation-only output always keeps the page's own nodes.
-export function render(view: View, translated: string, mode: DisplayMode, language: string, rich = true, look?: TranslationLook) {
+export function render(view: View, translated: string, mode: DisplayMode, language: string, rich = true) {
   const visible = !!(view.output?.isConnected || view.marker?.isConnected);
   restore(view);
   if (!current(view)) return false;
@@ -203,7 +190,7 @@ export function render(view: View, translated: string, mode: DisplayMode, langua
   const nodes = build(parts);
   const remembered = document.createElement('span');
   remembered.append(...nodes.map(node => node.cloneNode(true)));
-  place(view, nodes, mode, language, look);
+  place(view, nodes, mode, language);
   view.lastOutput = remembered;
   if (!visible) fadeIn(view, mode);
   return true;

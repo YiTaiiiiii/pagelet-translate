@@ -1,10 +1,10 @@
 import { cacheKey, limitedText, EMPTY_USAGE, type BatchInput, type Scope, type SegmentResult } from '../shared/engine';
 import { IDLE_STATE, type PageState } from '../shared/translation';
-import { DEFAULT_LOOK, parseLook, type DisplayMode, type TranslationLook } from '../shared/settings';
+import type { DisplayMode } from '../shared/settings';
 import { DEFAULT_LANGUAGES, languageCode, parseLanguages, type LanguagePair } from '../shared/languages';
 import { BUILD_VERSION, RELOAD_EXTENSION } from '../shared/runtime';
 import { composedParent, extract, openRoots, pageRoots, readingContext, visible, type Source } from './extract';
-import { current, render, restore, retain, styleOutput, boundaryNodes, boundaryCurrent, setHint, type HintKind, type View } from './render';
+import { current, render, restore, retain, boundaryNodes, boundaryCurrent, setHint, type HintKind, type View } from './render';
 import { OriginalPeek, type PeekTarget } from './peek';
 import { ParagraphBar, type BarAction, type BarTarget } from './actions';
 import { PageProgress } from './progress';
@@ -57,7 +57,6 @@ export class PageTranslation {
   private pair: LanguagePair = DEFAULT_LANGUAGES;
   private mode: DisplayMode = 'bilingual';
   private rich = true;
-  private look: TranslationLook = DEFAULT_LOOK;
   // Rich text was switched: render shown bilingual translations again.
   private restyle = false;
   // Service identity from the start message: format, endpoint, model, thinking.
@@ -155,7 +154,6 @@ export class PageTranslation {
     this.pair = next;
     this.mode = input.mode;
     if (input.rich !== undefined && input.rich !== this.rich) { this.rich = input.rich; this.restyle = true; }
-    if (input.look) this.setLook(input.look);
     this.service = input.endpoint;
     this.dirty = true;
     this.published = ''; this.acknowledged = '';
@@ -193,19 +191,13 @@ export class PageTranslation {
   setMode(mode: DisplayMode) {
     this.mode = mode;
     this.peek.hide(); this.bar.hide();
-    for (const p of this.paragraphs) if (p.provisional && p.lastOutput) retain(p, p.lastOutput, mode, this.pair.targetLanguage, this.look);
+    for (const p of this.paragraphs) if (p.provisional && p.lastOutput) retain(p, p.lastOutput, mode, this.pair.targetLanguage);
     this.apply();
   }
   setRich(rich: boolean) {
     if (rich === this.rich) return;
     this.rich = rich; this.restyle = true;
     if (this.state.enabled) this.apply();
-  }
-  setLook(value: unknown) {
-    this.look = parseLook(value);
-    this.observer.disconnect();
-    for (const p of this.paragraphs) if (p.output) styleOutput(p.output, this.look);
-    this.observe();
   }
   setScope(scope: Scope) {
     this.observer.disconnect(); this.paragraphs.forEach(restore); this.paragraphs = []; this.dirty = true; this.scope = scope; this.state.scope = scope;
@@ -268,7 +260,7 @@ export class PageTranslation {
         if (!shown || p.provisional || (this.restyle && this.mode === 'bilingual')) {
           mark();
           try {
-            if (render(p, entry.text, this.mode, this.pair.targetLanguage, this.rich, this.look)) {
+            if (render(p, entry.text, this.mode, this.pair.targetLanguage, this.rich)) {
               changed.add(p.source.parent);
               this.results.touch(p.key);
               if (p.lastOutput) this.results.rememberRecent(this.identity(p), p.source.plain, p.lastOutput);
@@ -463,7 +455,7 @@ export class PageTranslation {
         restore(p);
         p.key = key;
         p.supplement = supplement;
-        if (display) retain(p, display, this.mode, this.pair.targetLanguage, this.look);
+        if (display) retain(p, display, this.mode, this.pair.targetLanguage);
         this.entry(key, p.source, checks);
       }
       p.unitKey = info.unitKey ?? '';
@@ -496,7 +488,7 @@ export class PageTranslation {
         const recent = this.results.recentExtension(this.identity(paragraph), source.plain);
         const previous = retained.find(p => p.kind === 'feed' && p.unitKey === unitKey && p.context === context && p.supplement === supplement && !unitKey.includes('text:') && isSourceExtension(p.source.plain, source.plain));
         const output = recent ?? previous?.lastOutput;
-        if (output) retain(paragraph, output, this.mode, this.pair.targetLanguage, this.look);
+        if (output) retain(paragraph, output, this.mode, this.pair.targetLanguage);
       }
       this.paragraphs.push(paragraph);
       this.results.touch(key);

@@ -12,50 +12,10 @@ export function siteOf(url: string | undefined): string | null {
   catch { return null; }
 }
 export function sitePattern(site: string) { return `${site}/*`; }
-// The floating ball is opt-in: it runs on every HTTPS page, so it needs access
-// to all of them, asked for only when the reader turns it on.
-export const FLOATING_BALL_KEY = 'floating-ball.v1';
-export const BALL_ORIGINS = ['https://*/*'];
-// Where the reader last left the ball: side edge and share of window height.
-export const BALL_PLACE_KEY = 'floating-ball-place.v1';
 // Bilingual translations repeat links and emphasis of the original (on by
 // default). Kept apart from Settings: switching it neither clears results nor
 // stops translating pages.
 export const RICH_TEXT_KEY = 'rich-text.v1';
-// Optional mark on bilingual translations so they stand apart from the
-// original: a very light background with a little padding, or an underline.
-export const LOOK_KEY = 'translation-look.v1';
-export const LOOK_STYLES = ['none', 'background', 'underline', 'wavy', 'dashed', 'dotted'] as const;
-export type LookStyle = typeof LOOK_STYLES[number];
-export interface TranslationLook { style: LookStyle; color: string }
-export const DEFAULT_LOOK: TranslationLook = { style: 'none', color: '#3b82f6' };
-// Inline CSS for a look, put on an inline span around the translated text so
-// the mark follows the text line by line instead of filling the whole block.
-// Shared by the page output and the options preview. The colour is chosen for
-// the background only; lines use the default blue.
-export function lookStyle({ style, color }: TranslationLook) {
-  const line = style !== 'none' && style !== 'background';
-  const fill = style === 'background';
-  return {
-    backgroundColor: fill ? `color-mix(in srgb, ${color} 12%, transparent)` : '',
-    padding: fill ? '2px 4px' : '',
-    borderRadius: fill ? '4px' : '',
-    boxDecorationBreak: fill ? 'clone' : '',
-    WebkitBoxDecorationBreak: fill ? 'clone' : '',
-    textDecorationLine: line ? 'underline' : '',
-    textDecorationStyle: style === 'underline' ? 'solid' : line ? style : '',
-    textDecorationColor: line ? DEFAULT_LOOK.color : '',
-    textDecorationThickness: line ? '1px' : '',
-    textUnderlineOffset: line ? '4px' : '',
-  };
-}
-export function parseLook(value: unknown): TranslationLook {
-  const look = value as Partial<TranslationLook> | null;
-  return {
-    style: LOOK_STYLES.includes(look?.style as LookStyle) ? look!.style as LookStyle : DEFAULT_LOOK.style,
-    color: typeof look?.color === 'string' && /^#[0-9a-f]{6}$/i.test(look.color) ? look.color.toLowerCase() : DEFAULT_LOOK.color,
-  };
-}
 
 // Request format of the configured service. Both are spoken by many
 // providers beyond their originators (DeepSeek, Kimi, GLM, gateways).
@@ -165,10 +125,6 @@ export interface UiBridge {
   getAutoSite?(): Promise<AutoSite>;
   saveAutoSite?(site: string, enabled: boolean): Promise<import('./translation').PageState>;
   watchPageState?(listener: (state: import('./translation').PageState) => void): () => void;
-  getFloatingBall?(): Promise<boolean>;
-  saveFloatingBall?(enabled: boolean): Promise<boolean>;
   getRichText?(): Promise<boolean>;
   saveRichText?(enabled: boolean): Promise<boolean>;
-  getLook?(): Promise<TranslationLook>;
-  saveLook?(look: TranslationLook): Promise<TranslationLook>;
 }
